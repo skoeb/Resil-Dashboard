@@ -483,6 +483,9 @@ def ResourceMixPlotter(state):
     for l in otherlist:
         if l not in df.columns:
             df[l] = 0
+    for l in ['Hydro']:
+        if l not in df.columns:
+            df[l] = 0
     
     df['Other'] = df['Other'] + df['Other Gas'] + df['Petroleum Coke'] + df['Other Bio'] +df['Petroleum']
     df['Hydro'] = df['Hydro'] + df['Hydro PS']

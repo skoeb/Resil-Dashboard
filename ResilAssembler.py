@@ -65,11 +65,15 @@ disasterwidget = widgets.Select(
 df_dis = ResilDashboard.FEMADisasters(statewidget.value)
 def disasternamesgetter():
     global df_dis
-    df_dis = ResilDashboard.FEMADisasters(statewidget.value)
-    disaster_list = list(set(df_dis.title))
-    disaster_list.append('All')
-    disasterwidget.options = disaster_list
-    disasterwidget.value = 'All'
+    try:
+        df_dis = ResilDashboard.FEMADisasters(statewidget.value)
+        disaster_list = list(set(df_dis.title))
+        disaster_list.append('All')
+        disasterwidget.options = disaster_list
+        disasterwidget.value = 'All'
+    except Exception:
+        disasterwidget.options = ['All']
+        disasterwidget.value = 'All'
 
 def elecrunner(stateinput, zipinput):
     plot = ResilDashboard.ElectricityorGasPlotter(state = stateinput, zipcode = zipinput, resource = 'Elec')
