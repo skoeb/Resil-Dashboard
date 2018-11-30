@@ -100,8 +100,9 @@ def filterrunner(stateinput, zipinput, searchinput):
                                    column_options = col_options,
                                    column_definitions = col_defs,
                                    show_toolbar = False)
-    disasternamesgetter()
     display(qgrid_widget)
+    disasternamesgetter()
+
 
 def resourcemixrunner(stateinput):
     plot = ResilDashboard.ResourceMixPlotter(state = stateinput)
