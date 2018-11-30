@@ -542,7 +542,7 @@ def FEMAMapper(state, disaster_name, df_dis):
         df_dis_ = df_dis.loc[df_dis['title'] == disaster_name]
     else:
         df_dis_ = df_dis.copy()
-    Countiesshpfile = "cb_2017_us_county_20m.shp"
+    Countiesshpfile = "shape_files/cb_2017_us_county_20m.shp"
     Countiesshp = gpd.read_file(Countiesshpfile)
     Countiesshp.crs = {'init': 'epsg:4326'}
     cshp = Countiesshp.loc[Countiesshp['STATEFP'] == state_fip]
