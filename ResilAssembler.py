@@ -132,17 +132,27 @@ gas_out = widgets.interactive_output(gasrunner, {'stateinput':statewidget,
 
 map_out = widgets.interactive_output(maprunner, {'stateinput':statewidget,
                                                  'disasterinput':disasterwidget})
+display(statewidget)
+display(zipwidget)
+display(searchwidget)
+display(disasterwidget)
 
+display(resource_out)
+display(rates_out)
+display(elec_out)
+display(gas_out)
+display(cleap_ratesmix)
+display(cleap_consumption)
 
-vbox1 = widgets.VBox([statewidget])
-vbox2 = widgets.VBox([zipwidget,searchwidget, disasterwidget])
-ui = widgets.HBox([vbox1,vbox2])
-ui.justify_content = 'center'
+#vbox1 = widgets.VBox([statewidget])
+#vbox2 = widgets.VBox([zipwidget,searchwidget, disasterwidget])
+#ui = widgets.HBox([vbox1,vbox2])
+#ui.justify_content = 'center'
 
-cleap_ratesmix = widgets.HBox([resource_out, rates_out])
-cleap_consumption = widgets.HBox([elec_out, gas_out])
-cleap = widgets.VBox([cleap_ratesmix, cleap_consumption])
-cleap.justify_content = 'center'
-display(ui, grid_out, cleap, map_out)
+#cleap_ratesmix = widgets.HBox([resource_out, rates_out])
+#cleap_consumption = widgets.HBox([elec_out, gas_out])
+#cleap = widgets.VBox([cleap_ratesmix, cleap_consumption])
+#cleap.justify_content = 'center'
+#display(ui, grid_out, cleap, map_out)
 
   
