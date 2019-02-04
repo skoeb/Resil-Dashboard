@@ -141,8 +141,6 @@ display(resource_out)
 display(rates_out)
 display(elec_out)
 display(gas_out)
-display(cleap_ratesmix)
-display(cleap_consumption)
 
 #vbox1 = widgets.VBox([statewidget])
 #vbox2 = widgets.VBox([zipwidget,searchwidget, disasterwidget])
