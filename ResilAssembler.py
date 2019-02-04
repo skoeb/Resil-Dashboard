@@ -137,19 +137,22 @@ display(zipwidget)
 display(searchwidget)
 display(disasterwidget)
 
-display(resource_out)
-display(rates_out)
-display(elec_out)
-display(gas_out)
+#display(resource_out)
+#display(rates_out)
+#display(elec_out)
+#display(gas_out)
 
 #vbox1 = widgets.VBox([statewidget])
 #vbox2 = widgets.VBox([zipwidget,searchwidget, disasterwidget])
 #ui = widgets.HBox([vbox1,vbox2])
 #ui.justify_content = 'center'
 
-#cleap_ratesmix = widgets.HBox([resource_out, rates_out])
-#cleap_consumption = widgets.HBox([elec_out, gas_out])
-#cleap = widgets.VBox([cleap_ratesmix, cleap_consumption])
+cleap_ratesmix = widgets.HBox([resource_out, rates_out])
+cleap_consumption = widgets.HBox([elec_out, gas_out])
+cleap = widgets.VBox([cleap_ratesmix, cleap_consumption])
+display(grid_out)
+display(cleap)
+display(map_out)
 #cleap.justify_content = 'center'
 #display(ui, grid_out, cleap, map_out)
 
