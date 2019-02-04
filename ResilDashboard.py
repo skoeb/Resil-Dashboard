@@ -213,6 +213,8 @@ def LocalNewDsireChecker():
     
     dsiremonth = int(pklname.split('-')[-1])
     currentmonth = datetime.now().month
+    if len(str(currentmonth)) < 2:
+        currentmonth = '0' + str(currentmonth)
     currentyear = datetime.now().year
     
     if currentmonth != dsiremonth:
