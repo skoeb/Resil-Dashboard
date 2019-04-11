@@ -1,4 +1,4 @@
-ipywidgets
+ipywidgets==7.2.1
 requests
 pandas
 html2text==2018.1.9

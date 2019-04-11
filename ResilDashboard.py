@@ -96,23 +96,23 @@ with open(f'statecentroids.pickle', 'rb') as handle:
 
 def dsiredfmaker(dsiredict):
     dsireprograms = dsiredict['program.csv']
-    
+
     dsirestates = dsiredict['state.csv']
     statesdict = pd.Series(dsirestates.name.values, index=dsirestates.id).to_dict()
     dsireprograms['State'] = dsireprograms['state_id'].map(statesdict)
-    
+
     dsiresector = dsiredict['implementing_sector.csv']
     sectordict = pd.Series(dsiresector.name.values,index=dsiresector.id).to_dict()
     dsireprograms['Implementing Sector'] = dsireprograms['implementing_sector_id'].map(sectordict)
-    
+
     dsirecategory = dsiredict['program_category.csv']
     categorydict = pd.Series(dsirecategory.name.values,index=dsirecategory.id).to_dict()
     dsireprograms['Program Category'] = dsireprograms['program_category_id'].map(categorydict)
-    
+
     dsiretype = dsiredict['program_type.csv']
     typedict = pd.Series(dsiretype.name.values,index=dsiretype.id).to_dict()
     dsireprograms['Program Type'] = dsireprograms['program_type_id'].map(typedict)
-    
+
     dsireenergycat = dsiredict['energy_category.csv']
     energycatdict = pd.Series(dsireenergycat.name.values,index=dsireenergycat.id).to_dict()
     dsireprogramtechnology = dsiredict['program_technology.csv']
@@ -129,22 +129,22 @@ def dsiredfmaker(dsiredict):
     dsireprograms['Technology Type'] = dsireprograms['technology_id'].map(technologydict)
     dsireprograms['Technology Category'] = dsireprograms['technology_id'].map(technologycatdict)
     dsireprograms['Energy Category'] = dsireprograms['Technology Category'].map(energycatdict)
-    
+
     dsireprograms = dsireprograms.dropna(subset = ['Energy Category'])
     dsireprograms = dsireprograms.loc[dsireprograms['published'] == 1]
     dsireprograms['End Date'] = dsireprograms['end_date'].fillna('2099-01-01 00:00:00')
     dsireprograms['End Date'] = pd.to_datetime(dsireprograms['End Date'])
     dsireprograms = dsireprograms.loc[dsireprograms['End Date'] > datetime.now()]
-    
-    
+
+
     dsireprogramcounty = dsiredict['program_county.csv']
     dsireprogramzip = dsiredict['program_zipcode.csv']
     dsireprogramcity = dsiredict['program_city.csv']
     dsirezip = dsiredict['zipcode.csv']
-    
+
     dsireparameterset = dsiredict['parameter_set.csv']
     dsireparameters = dsiredict['parameter.csv']
-    
+
     def programidgetter(row):
         programid_ = row['id']
         programiddf_ = dsireparameterset.loc[dsireparameterset['program_id'] == programid_]
@@ -158,7 +158,7 @@ def dsiredfmaker(dsiredict):
                 amount = int(parameterdf_['amount'][0:1].item())
                 units = parameterdf_['units'][0:1].item()
                 parametertuples.append((programid_, amount, units))
-    
+
     parametertuples = []
     dsireprograms.apply(programidgetter, axis = 1)
     parametertuples = [i for i in parametertuples if len(i) == 3]
@@ -166,27 +166,27 @@ def dsiredfmaker(dsiredict):
     programunits = {i[0]:i[2] for i in parametertuples}
     dsireprograms['Max Incentive'] = dsireprograms['id'].map(programamount)
     dsireprograms['Incentive Units'] = dsireprograms['id'].map(programunits)
-    
+
     def zipcodegetter(row):
         programid = row['id']
-        
+
         dfcounty_ = dsireprogramcounty.loc[dsireprogramcounty['program_id'] == programid]
         counties_ = list(dfcounty_['county_id'])
         zips_from_counties_ = list(dsirezip.loc[dsirezip['county_id'].isin(counties_)]['zipcode'])
-        
+
         dfzip_ = dsireprogramzip.loc[dsireprogramzip['program_id'] == programid]
         zipids_ = list(dfzip_['zipcode_id'])
         zips_from_zipids_ = list(dsirezip.loc[dsirezip['id'].isin(zipids_)]['zipcode'])
-        
+
         dfcity_ = dsireprogramcity.loc[dsireprogramcity['program_id'] == programid]
         cities_ = list(set(dfcity_['city_id']))
         zips_from_cities_ = list(dsirezip.loc[dsirezip['city_id'].isin(cities_)]['zipcode'])
-        
+
         zipsout = list(set(zips_from_counties_ + zips_from_zipids_ + zips_from_cities_))
         return zipsout
-    
+
     dsireprograms['zipcodes'] = dsireprograms.apply(zipcodegetter, axis = 1)
-    
+
     def summarycleaner(row):
         summarylist = [row['summary'], row['name'], row['Technology Category'], row['Energy Category'],
                        row['Program Type'], row['Program Category'], row['Implementing Sector']]
@@ -199,27 +199,15 @@ def dsiredfmaker(dsiredict):
         text = text_maker.handle(summaryin)
         return text.lower()
     dsireprograms['summary'] = dsireprograms.apply(summarycleaner, axis = 1)
-    
+
     dsireprograms.rename(columns = {'name':'Program Name'}, inplace = True)
     return dsireprograms
 
-def LocalNewDsireChecker():
-    cwd = os.getcwd()
-    siblings = os.listdir(cwd)
-    
-    for i in siblings:
-        if 'dsire' in str(i):
-            pklname = i.split('.')[0]
-    
-    dsiremonth = int(pklname.split('-')[-1])
-    currentmonth = datetime.now().month
-    if len(str(currentmonth)) < 2:
-        currentmonth = '0' + str(currentmonth)
-    currentyear = datetime.now().year
-    
-    if currentmonth != dsiremonth:
-        print('DSIRE data is outdated, downloading new data...')
-        newpklname = f'dsire-{currentyear}-{currentmonth}'
+def NewDsireChecker():
+    """Check for an existing dsiredatadump pickled dataframe, if it's outdated or doesn't exist, download a new one"""
+    def download_new_dsiredatadump():
+        print('Downloading new DSIRE data...')
+        newpklname = f'dsiredatadump-{currentyear}-{currentmonth}'
         dsirezipurl = f'https://ncsolarcen-prod.s3.amazonaws.com/fullexports/dsire-{currentyear}-{currentmonth}.zip'
         r = requests.get(dsirezipurl)
         z = zipfile.ZipFile(io.BytesIO(r.content))
@@ -231,50 +219,44 @@ def LocalNewDsireChecker():
                 df_ = pd.read_csv(file_)
                 csvfiles[file] = df_
 
+        print('Processing data to dataframe...')
         dsireprograms = dsiredfmaker(csvfiles)
-        with open(f'{newpklname}.pickle', 'wb') as handle:
-            pickle.dump(dsireprograms, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        os.remove(f'{pklname}.pickle') 
-    else:
-        print('current DSIRE data found...')
-        with open(f'{pklname}.pickle', 'rb') as handle:
-            csvfiles = pickle.load(handle)
-        return csvfiles
-    
-def NewDsireChecker():
+        dsireprograms.to_pickle(f'{newpklname}.pkl')
+        return dsireprograms
+
     cwd = os.getcwd()
     siblings = os.listdir(cwd)
-    
-    for i in siblings:
-        if 'dsire' in str(i):
-            pklname = i.split('.')[0]
-    
-    dsiremonth = int(pklname.split('-')[-1])
+
     currentmonth = datetime.now().month
-    currentyear = datetime.now().year
-    
-    if currentmonth != dsiremonth:
-        print('DSIRE data is outdated, downloading new data...')
-        dsirezipurl = f'https://ncsolarcen-prod.s3.amazonaws.com/fullexports/dsire-{currentyear}-{currentmonth}.zip'
-        r = requests.get(dsirezipurl)
-        z = zipfile.ZipFile(io.BytesIO(r.content))
-        zfiles = z.namelist()
-        csvfiles = {}
-        for file in zfiles:
-            if file.endswith(".csv"):
-                file_ = z.open(file)
-                df_ = pd.read_csv(file_)
-                csvfiles[file] = df_
-        print('current DSIRE data downloaded (but not commited!)')
-        dsireprograms = dsiredfmaker(csvfiles)
+    if len(str(currentmonth)) < 2:
+        currentmonth = '0' + str(currentmonth) #make sure current month string is len 2
+    currentyear = datetime.now().year #year isn't currently checked
+
+    pklname = ""
+    for i in siblings: #look through sibling files for a dsiredatadump-YYYY-MM.pkl file
+        if 'dsiredatadump' in str(i):
+            pklname = i.split('.')[0]
+
+    if pklname == "": #if no dsiredatadump file, download one
+        print('No DSIRE file found in this directory...')
+        dsireprograms = download_new_dsiredatadump()
         return dsireprograms
-    else:
-        print('current DSIRE data found...')
-        with open(f'{pklname}.pickle', 'rb') as handle:
-            dsireprograms = pickle.load(handle)
-        return dsireprograms
-    
-    
+
+    else: #if there is a dsiredatadump file, check the month in its file name
+        dsiremonth = int(pklname.split('-')[-1])
+        if len(str(dsiremonth)) < 2:
+            dsiremonth = '0' + str(dsiremonth) #make sure dsire month string is len 2
+
+        if currentmonth != dsiremonth: #compare file month to current month
+            print('DSIRE data file is outdated...')
+            dsireprograms = download_new_dsiredatadump()
+            os.remove(f'{pklname}.pkl') #remove old dsiredatadump file
+            return dsireprograms
+        else:
+            print('current DSIRE data found...')
+            dsireprograms = pd.read_pickle(f'{pklname}.pkl')
+            return dsireprograms
+
 def DsireFilterer(dsirefile, stateinput = '', zipinput = '', searchinput = ''):
     df = dsirefile.copy()
     dfstate = df.loc[df['State'] == stateinput]
@@ -351,7 +333,7 @@ def UtilityRatesPlotter(state):
     s_ind = pd.Series([i[1] for i in j_ind], index = [i[0] for i in j_ind])
     s_ind.name = 'industrial'
     df_ = pd.concat([s_res, s_com, s_ind], axis = 1).sort_index(ascending = True)[-10:]
-    
+
 
     j_res_us = requestmaker(api_url = 'ELEC.PRICE.US-RES.A', source = 'EIA')['series'][0]['data']
     j_com_us = requestmaker(api_url = 'ELEC.PRICE.US-COM.A', source = 'EIA')['series'][0]['data']
@@ -363,13 +345,13 @@ def UtilityRatesPlotter(state):
     s_ind_us = pd.Series([i[1] for i in j_ind_us], index = [i[0] for i in j_ind_us])
     s_ind_us.name = 'industrial'
     df_us_ = pd.concat([s_res_us, s_com_us, s_ind_us], axis = 1).sort_index(ascending = True)[-10:]
-    
+
     cp = toyplot.color.Palette()
     canvas = toyplot.Canvas(width = 550, height = 350, autorender = False)
     axes = canvas.cartesian(label = f'{state} Average Retail Electricity Price', ylabel = '$/kWh')
-    
+
     label_style = {"text-anchor":"start", "-toyplot-anchor-shift":"3px"}
-    
+
     state_res = axes.plot(df_.index, df_['residential'], style={"stroke":cp[0],
                                                                 "stroke-width":2.5})
     axes.text(df_.index[-1],df_['residential'][-1], f"{state_abrev} Res.", color = cp[0], style = label_style)
@@ -389,10 +371,10 @@ def UtilityRatesPlotter(state):
                                                                 "stroke-width":1})
     axes.text(df_us_.index[-1],df_us_['industrial'][-1], f"US Ind.", color = cp[2], style = label_style)
     axes.x.ticks.locator = toyplot.locator.Explicit(locations = df_.index)
-    
+
     h = toyplot.html.tostring(canvas)
     return h
-    
+
 def ElectricityorGasPlotter(state, resource, zipcode = None):
     cp = toyplot.color.Palette()
     cpalpha = []
@@ -400,7 +382,7 @@ def ElectricityorGasPlotter(state, resource, zipcode = None):
         i['a'] = 0.4
         cpalpha.append(i)
     colors = [cp[0],cpalpha[0],cp[1],cpalpha[1],cp[2],cpalpha[2]]
-        
+
     if len(zipcode) != 5:
         zipcode = None
     if zipcode != None:
@@ -410,7 +392,7 @@ def ElectricityorGasPlotter(state, resource, zipcode = None):
         state_abrev = us_state_abbrev[state]
         geo = state_abrev
         j = requestmaker(api_url = 'cleap/v1/energy_expenditures_and_ghg_by_sector', source = 'NREL', state = state_abrev)
-    
+
     r = j['result'][list(j['result'].keys())[0]]
     labels = [f'{geo} Res.','US Res.', f'{geo} Com.', 'US Com.', f'{geo} Ind.', 'US Ind.']
     if resource == 'Elec':
@@ -426,7 +408,7 @@ def ElectricityorGasPlotter(state, resource, zipcode = None):
         axes_elec.x.ticks.locator = toyplot.locator.Explicit(labels=labels)
         h_elec = toyplot.html.tostring(canvas_elec)
         return h_elec
-              
+
     elif resource == 'Gas':
         i_res_gas = r['residential']['gas_mcf'] / r['residential']['total_pop']
         i_com_gas = r['commercial']['gas_mcf'] / r['residential']['total_pop']
@@ -434,7 +416,7 @@ def ElectricityorGasPlotter(state, resource, zipcode = None):
         us_res_gas = 15.42
         us_com_gas = 7.96
         us_ind_gas = 19.8
-    
+
         values_gas = [i_res_gas, us_res_gas, i_com_gas, us_com_gas, i_ind_gas, us_ind_gas]
         canvas_gas, axes_gas, mark_gas = toyplot.bars(values_gas, width=550, height=350, color = colors,
                                           label = f'{geo} Natural Gas Consumption Per Capita', ylabel = 'MCF')
@@ -454,7 +436,7 @@ def ResourceMixPlotter(state):
               'Solar':cp[5],
               'Hydro':cp[2],
               'Other':cp[7]}
-    
+
     resources = {'Coal':'COW',
                  'Petroleum':'PEL',
                  'Natural Gas':'NG',
@@ -488,7 +470,7 @@ def ResourceMixPlotter(state):
     for l in ['Hydro']:
         if l not in df.columns:
             df[l] = 0
-    
+
     df['Other'] = df['Other'] + df['Other Gas'] + df['Petroleum Coke'] + df['Other Bio'] +df['Petroleum']
     df['Hydro'] = df['Hydro'] + df['Hydro PS']
     df['Solar'] = df['Small-Scale PV'] + df['PV'] + df['CSP']
@@ -500,11 +482,11 @@ def ResourceMixPlotter(state):
     resourcelist = df.columns
 
     resourcecolorlist = [cpdict[i] for i in resourcelist]
-    
+
     dfout = df.values
     canvas, axes, mark = toyplot.fill(dfout, width=550, height=350, color = resourcecolorlist, baseline = 'stacked',
                                       margin = (40,95,40,45), label = f'{state} Resource Generation Mix', ylabel = 'GWh')
-    
+
     legendlist = []
     count = 0
     for i in resourcelist:
@@ -516,7 +498,7 @@ def ResourceMixPlotter(state):
     axes.x.ticks.locator = toyplot.locator.Explicit(labels = df.index)
     h = toyplot.html.tostring(canvas)
     return h
-    
+
 def FEMADisasters(state):
     state_abrev = us_state_abbrev[state]
     state_fip = state_codes[state_abrev]
@@ -529,7 +511,7 @@ def FEMADisasters(state):
                         'FM':'Fire Management',
                         'FS':'Fire Suppression'}
     df_dis['disasterType'] = df_dis['disasterType'].map(disastertypedict)
-    
+
     def titlemaker(row):
         dn = row['disasterNumber']
         dt = row['title']
@@ -538,11 +520,11 @@ def FEMADisasters(state):
     df_dis['title'] = df_dis.apply(titlemaker, axis = 1)
     df_dis['title'] = [i.title() for i in df_dis['title']]
     return df_dis
-    
+
 def FEMAMapper(state, disaster_name, df_dis):
     state_abrev = us_state_abbrev[state]
     state_fip = state_codes[state_abrev]
-    
+
     if disaster_name != 'All':
         df_dis_ = df_dis.loc[df_dis['title'] == disaster_name]
     else:
@@ -552,7 +534,7 @@ def FEMAMapper(state, disaster_name, df_dis):
     Countiesshp.crs = {'init': 'epsg:4326'}
     cshp = Countiesshp.loc[Countiesshp['STATEFP'] == state_fip]
     cshp['FIP'] = cshp['STATEFP'] + cshp['COUNTYFP']
-    
+
     def geometryfinder(row):
         fip = row['placeCode']
         try:
@@ -565,10 +547,10 @@ def FEMAMapper(state, disaster_name, df_dis):
 
     gdf_dis = gpd.GeoDataFrame(df_dis_, geometry = 'geometry')
     gdf_dis.crs = {'init': 'epsg:4326'}
-    
+
     m = folium.Map(tiles = 'stamentoner', location = statecentroids[state_fip], zoom_start = 6,
                    max_zoom = 6, min_zoom = 2, width = 600, height = 400)
-    
+
     ih_gdf_dis = gdf_dis.loc[gdf_dis['ihProgramDeclared'] == True]
     if len(ih_gdf_dis) > 0:
         ih_layer = FeatureGroup(name = 'Individual & Household Program', show = True)
@@ -579,7 +561,7 @@ def FEMAMapper(state, disaster_name, df_dis):
                                                                         'weight':0})
         ih_geojson.add_to(ih_layer)
         m.add_child(ih_layer)
-    
+
     ia_gdf_dis = gdf_dis.loc[gdf_dis['iaProgramDeclared'] == True]
     if len(ia_gdf_dis) > 0:
         ia_layer = FeatureGroup(name = 'Individual Assistance', show = True)
@@ -590,7 +572,7 @@ def FEMAMapper(state, disaster_name, df_dis):
                                                                         'weight':0})
         ia_geojson.add_to(ia_layer)
         m.add_child(ia_layer)
-        
+
     pa_gdf_dis = gdf_dis.loc[gdf_dis['paProgramDeclared'] == True]
     if len(pa_gdf_dis) > 0:
         pa_layer = FeatureGroup(name = 'Public Assistance', show = True)
@@ -601,7 +583,7 @@ def FEMAMapper(state, disaster_name, df_dis):
                                                                         'weight':0})
         pa_geojson.add_to(pa_layer)
         m.add_child(pa_layer)
-    
+
     hm_gdf_dis = gdf_dis.loc[gdf_dis['paProgramDeclared'] == True]
     if len(hm_gdf_dis) > 0:
         hm_layer = FeatureGroup(name = 'Hazard Mitigation Assistance', show = True)
@@ -612,7 +594,7 @@ def FEMAMapper(state, disaster_name, df_dis):
                                                                         'weight':0})
         hm_geojson.add_to(hm_layer)
         m.add_child(hm_layer)
-        
+
     m.add_child(folium.map.LayerControl(collapsed = False, autoZIndex = True))
     return m._repr_html_()
 
